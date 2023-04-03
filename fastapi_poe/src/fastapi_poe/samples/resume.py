@@ -22,6 +22,11 @@ from fastapi_poe.samples.assets.messages import (
 )
 from fastapi_poe.samples.assets.prompts import RESUME_PROMPT
 
+import requests
+from PIL import Image
+from io import BytesIO
+import pytesseract
+
 import openai
 assert openai.api_key
 
@@ -73,15 +78,16 @@ if __name__ == "__main__":
     run(EchoHandler())
 
 
-async def parse_document_from_url(url) -> Tuple[bool, str]:
-    print(url)
-    result = await asyncio.create_subprocess_exec('tesseract', url.strip(), '-', '--psm', '4',
-                                                  stdout=subprocess.PIPE)
-    stdout, _ = await result.communicate()
-    if result.returncode != 0:
+async def parse_document_from_url(image_url: str) -> Tuple[bool, str]:
+    try:
+        response = requests.get(image_url.strip())
+        img = Image.open(BytesIO(response.content))
+
+        custom_config = '--psm 4'
+        text = pytesseract.image_to_string(img, config=custom_config)
+        return True, text
+    except:
         return False, ""
-    extracted_text = stdout.decode()
-    return True, extracted_text
 
 
 def process_message_with_gpt(message_history: List[dict[str, str]]) -> str:
