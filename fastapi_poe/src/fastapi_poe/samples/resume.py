@@ -41,6 +41,7 @@ image_url_cache = {}
 class ResumeHandler(PoeHandler):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
         user_statement = query.query[-1].content
+        print(query.conversation_id, user_statement)
 
         if query.conversation_id not in image_url_cache:
             # TODO: validate user_statement is not malicious
