@@ -101,6 +101,20 @@ Messages may use the following content types:
   GitHub-Flavored Markdown (GFM, specified at https://github.github.com/gfm/). Poe may
   however modify the rendered Markdown for security or usability reasons.
 
+### Limits
+
+Poe may implement limits on bot servers to ensure the reliability and scalability of the
+product. In particular:
+
+- The initial response to any request must be returned within 5 seconds.
+- The response to any request (including `query` requests) must be completed within 60
+  seconds.
+- The total length of a bot response (the sum of the length of all `text` events sent in
+  response to a `query` request) may not exceed 10,000 characters.
+- The total number of events sent in response to a `query` event may not exceed 1000.
+
+We may raise these limits in the future if good use cases come up.
+
 ## Requests
 
 The Poe server will send an HTTP POST request to the bot servers URL with content type
@@ -166,19 +180,26 @@ The following event types are supported:
 - `meta`: represents metadata about how the Poe server should treat the bot server
   response. This event should be the first event sent back by the bot server. If no
   `meta` event is given, the default values are used. If a `meta` event is not the first
-  event, it is ignored. The data dictionary may have the following keys:
+  event, the behavior is unspecified; currently it is ignored but future extensions to
+  the protocol may allow multiple `meta` events in one response. The data dictionary may
+  have the following keys:
   - `content_type` (string, defaults to `text/markdown`): If this is `text/markdown`,
     the response is rendered as Markdown by the Poe client. If it is `text/plain`, the
     response is rendered as plain text. Other values are unsupported and are treated
     like `text/plain`.
   - `linkify` (boolean, defaults to true): If this is true, Poe will automatically add
     links to the response that generate additional queries to the bot server.
+  - `suggested_replies` (boolean, defaults to true): If this is true, Poe will suggest
+    followup messages to the user that they might want to send to the bot. If this is
+    false, no suggested replies will be shown to the user. Note that the protocol also
+    supports bots sending their own suggested replies (see below). If the bot server
+    sends any `suggested_reply` event, Poe will not show any of its own suggested
+    replies, only those suggested by the bot.
   - `refetch_settings` (boolean, defaults to false): Setting this to true advises the
     Poe server that it should refetch the `settings` endpoint and update the settings
     for this bot. Bot servers should set this to true when they wish to change their
     settings. The Poe server may not refetch settings for every response with this field
     set; for example, it may refetch only once per hour or day.
-  - (Can add more keys for suggested replies, images, etc. as desired)
 - `text`: represents a piece of text to send to the user. This is a partial response;
   the text shown to the user when the request is complete will be a concatenation of the
   texts from all `text` events. The data dictionary may have the following keys:
@@ -206,9 +227,6 @@ The following event types are supported:
 
 The bot response must include at least one `text` or `error` event; it is an error to
 send no response.
-
-The total length of a bot response (the sum of the length of all `text` events) may not
-exceed 10,000 characters.
 
 If the Poe server receives an event type it does not recognize, it ignores the event.
 

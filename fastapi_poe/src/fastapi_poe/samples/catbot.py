@@ -16,6 +16,7 @@ from fastapi_poe.types import (
     ContentType,
     QueryRequest,
     ReportFeedbackRequest,
+    SettingsRequest,
     SettingsResponse,
 )
 
@@ -32,7 +33,10 @@ class CatBotHandler(PoeHandler):
             "text/plain" if "plain" in last_message else "text/markdown"
         )
         yield self.meta_event(
-            content_type=content_type, linkify=True, refetch_settings=False
+            content_type=content_type,
+            linkify=True,
+            refetch_settings=False,
+            suggested_replies="dog" not in last_message,
         )
         if "markdown" in last_message:
             yield self.text_event("# Heading 1\n\n")
@@ -50,7 +54,7 @@ class CatBotHandler(PoeHandler):
             yield self.text_event("| cat    | 10       |\n")
             yield self.text_event("| dog    | 1        |\n")
             yield self.text_event("\n")
-        if "cardbord" in last_message:
+        if "cardboard" in last_message:
             yield self.text_event("crunch ")
             yield self.text_event("crunch")
         elif (
@@ -88,7 +92,7 @@ class CatBotHandler(PoeHandler):
             f"message {feedback.message_id}: {feedback.feedback_type}"
         )
 
-    async def get_settings(self) -> SettingsResponse:
+    async def get_settings(self, settings: SettingsRequest) -> SettingsResponse:
         """Return the settings for this bot."""
         return SETTINGS
 
