@@ -14,7 +14,8 @@ To run it:
 
 Before committing
 
-`pre-commit run --all-files`
+- `pre-commit run --all-files`
+- `pyright`
 
 ## Write your own bot
 
