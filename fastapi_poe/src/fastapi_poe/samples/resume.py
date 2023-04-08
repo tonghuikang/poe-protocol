@@ -5,29 +5,24 @@ Sample bot that echoes back messages.
 """
 from __future__ import annotations
 
-import asyncio
-import subprocess
-
-from typing import AsyncIterable
 from collections import defaultdict
+from io import BytesIO
+from typing import AsyncIterable
 
+import openai
+import pytesseract
+import requests
+from PIL import Image
 from sse_starlette.sse import ServerSentEvent
 
 from fastapi_poe import PoeHandler, run
-from fastapi_poe.types import QueryRequest
 from fastapi_poe.samples.assets.messages import (
-    UPDATE_IMAGE_PARSING,
     IMAGE_PARSE_FAILURE_REPLY,
+    UPDATE_IMAGE_PARSING,
     UPDATE_LLM_QUERY,
 )
-from fastapi_poe.samples.assets.prompts import RESUME_PROMPT
-
-import requests
-from PIL import Image
-from io import BytesIO
-import pytesseract
-
-import openai
+from fastapi_poe.samples.assets.prompts import RESUME_PROMPT, SYSTEM_PROMPT
+from fastapi_poe.types import QueryRequest
 
 assert openai.api_key
 
@@ -38,9 +33,7 @@ SETTINGS = {
     "allow_user_context_clear": True,
 }
 
-conversation_cache = defaultdict(
-    lambda: [{"role": "system", "content": "You are a helpful assistant."}]
-)
+conversation_cache = defaultdict(lambda: [{"role": "system", "content": SYSTEM_PROMPT}])
 
 image_url_cache = {}
 
@@ -77,7 +70,7 @@ if __name__ == "__main__":
     run(ResumeHandler())
 
 
-async def parse_document_from_url(image_url: str) -> Tuple[bool, str]:
+async def parse_document_from_url(image_url: str) -> tuple[bool, str]:
     try:
         response = requests.get(image_url.strip())
         img = Image.open(BytesIO(response.content))
@@ -85,11 +78,11 @@ async def parse_document_from_url(image_url: str) -> Tuple[bool, str]:
         custom_config = "--psm 4"
         text = pytesseract.image_to_string(img, config=custom_config)
         return True, text
-    except:
+    except requests.exceptions.MissingSchema:
         return False, ""
 
 
-def process_message_with_gpt(message_history: List[dict[str, str]]) -> str:
+def process_message_with_gpt(message_history: list[dict[str, str]]) -> str:
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo", messages=message_history, temperature=0.1
     )

@@ -9,7 +9,12 @@ To run it:
 - `python -m fastapi_poe`
 - In a different terminal, run [ngrok](https://ngrok.com/) to make it publicly
   accessible
-- For the resume bot, run `export OPENAI_API_KEY="sk-YOUR_OPENAI_API_KEY_MhHb9sQe"` before the instructions above
+- For the resume bot, run `export OPENAI_API_KEY="sk-YOUR_OPENAI_API_KEY_MhHb9sQe"`
+  before the instructions above
+
+Before committing
+
+`pre-commit run --all-files`
 
 ## Write your own bot
 
