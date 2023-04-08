@@ -28,6 +28,7 @@ from io import BytesIO
 import pytesseract
 
 import openai
+
 assert openai.api_key
 
 
@@ -38,15 +39,13 @@ SETTINGS = {
 }
 
 conversation_cache = defaultdict(
-    lambda: [
-        {"role": "system", "content": "You are a helpful assistant."}
-    ]
+    lambda: [{"role": "system", "content": "You are a helpful assistant."}]
 )
 
 image_url_cache = {}
 
 
-class EchoHandler(PoeHandler):
+class ResumeHandler(PoeHandler):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
         user_statement = query.query[-1].content
 
@@ -62,7 +61,7 @@ class EchoHandler(PoeHandler):
             user_statement = RESUME_PROMPT.format(resume_string)
 
         conversation_cache[query.conversation_id].append(
-            {"role": "user", "content": user_statement},
+            {"role": "user", "content": user_statement}
         )
 
         message_history = conversation_cache[query.conversation_id]
@@ -70,12 +69,12 @@ class EchoHandler(PoeHandler):
         yield self.text_event(bot_statement)
 
         conversation_cache[query.conversation_id].append(
-            {"role": "assistant", "content": bot_statement},
+            {"role": "assistant", "content": bot_statement}
         )
 
 
 if __name__ == "__main__":
-    run(EchoHandler())
+    run(ResumeHandler())
 
 
 async def parse_document_from_url(image_url: str) -> Tuple[bool, str]:
@@ -83,7 +82,7 @@ async def parse_document_from_url(image_url: str) -> Tuple[bool, str]:
         response = requests.get(image_url.strip())
         img = Image.open(BytesIO(response.content))
 
-        custom_config = '--psm 4'
+        custom_config = "--psm 4"
         text = pytesseract.image_to_string(img, config=custom_config)
         return True, text
     except:
@@ -92,9 +91,7 @@ async def parse_document_from_url(image_url: str) -> Tuple[bool, str]:
 
 def process_message_with_gpt(message_history: List[dict[str, str]]) -> str:
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=message_history,
+        model="gpt-3.5-turbo", messages=message_history, temperature=0.1
     )
-    bot_statement = response['choices'][0]['message']['content']
+    bot_statement = response["choices"][0]["message"]["content"]
     return bot_statement
-
