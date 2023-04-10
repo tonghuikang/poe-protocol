@@ -18,6 +18,7 @@ from sse_starlette.sse import ServerSentEvent
 
 from fastapi_poe import PoeHandler, run
 from fastapi_poe.samples.assets.messages import (
+    MULTIPLE_WORDS_FAILURE_REPLY,
     PARSE_FAILURE_REPLY,
     UPDATE_IMAGE_PARSING,
     UPDATE_LLM_QUERY,
@@ -46,7 +47,11 @@ class ResumeHandler(PoeHandler):
 
         if query.conversation_id not in url_cache:
             # TODO: validate user_statement is not malicious
-            content_url = user_statement
+            if len(user_statement.strip().split()) > 1:
+                yield self.text_event(MULTIPLE_WORDS_FAILURE_REPLY)
+                return
+
+            content_url = user_statement.strip()
             content_url = content_url.split("?")[0]  # remove query_params
 
             yield self.text_event(UPDATE_IMAGE_PARSING)
