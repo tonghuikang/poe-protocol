@@ -16,6 +16,11 @@ Before committing
 - `pre-commit run --all-files`
 - `pyright`
 
+
+What to take note when deploying to Ubuntu
+- `sudo apt install libpython3.9-dev` for `pdftotext`
+
+
 ## Write your own bot
 
 This package can also be used as a base to write your own bot. You can inherit from

@@ -12,7 +12,7 @@ I am querying the language model for analysis ...
 
 """
 
-IMAGE_PARSE_FAILURE_REPLY = """\
+PARSE_FAILURE_REPLY = """\
 I did not receive your resume.
 Please send a URL (and only an URL) to an image or pdf of your resume.
 
