@@ -13,12 +13,15 @@ from sse_starlette.sse import ServerSentEvent
 
 from fastapi_poe import PoeHandler, run
 from fastapi_poe.samples.assets.messages import (
-    MULTIPLE_WORDS_FAILURE_REPLY,
+    MULTIWORD_FAILURE_REPLY,
     PARSE_FAILURE_REPLY,
     UPDATE_IMAGE_PARSING,
     UPDATE_LLM_QUERY,
 )
-from fastapi_poe.samples.assets.prompts import RESUME_PROMPT, SYSTEM_PROMPT
+from fastapi_poe.samples.assets.prompts import (
+    RESUME_STARTING_PROMPT,
+    RESUME_SYSTEM_PROMPT,
+)
 from fastapi_poe.samples.utils import (
     parse_image_document_from_url,
     parse_pdf_document_from_url,
@@ -35,7 +38,9 @@ SETTINGS = {
     "allow_user_context_clear": True,
 }
 
-conversation_cache = defaultdict(lambda: [{"role": "system", "content": SYSTEM_PROMPT}])
+conversation_cache = defaultdict(
+    lambda: [{"role": "system", "content": RESUME_SYSTEM_PROMPT}]
+)
 
 url_cache = {}
 
@@ -48,7 +53,7 @@ class ResumeHandler(PoeHandler):
         if query.conversation_id not in url_cache:
             # TODO: validate user_statement is not malicious
             if len(user_statement.strip().split()) > 1:
-                yield self.text_event(MULTIPLE_WORDS_FAILURE_REPLY)
+                yield self.text_event(MULTIWORD_FAILURE_REPLY)
                 return
 
             content_url = user_statement.strip()
@@ -68,7 +73,7 @@ class ResumeHandler(PoeHandler):
                 return
             yield self.text_event(UPDATE_LLM_QUERY)
             url_cache[query.conversation_id] = content_url
-            user_statement = RESUME_PROMPT.format(resume_string)
+            user_statement = RESUME_STARTING_PROMPT.format(resume_string)
 
         conversation_cache[query.conversation_id].append(
             {"role": "user", "content": user_statement}

@@ -258,12 +258,16 @@ def run_multiple(path_to_handler: dict[str, PoeHandler], api_key: str = "") -> N
             f' href="{url}">{url}</a>.</p></body></html>'
         )
 
-    for path, handler in path_to_handler.items():
+    # maybe there is a better way to do this
+    for path, handler_ref in path_to_handler.items():
+        # PROBLEM: uses that latest handler
 
         @app.post(f"/{path}")
         async def poe_post(
             request: Dict[str, Any], dict=Depends(auth_user)
         ) -> Response:
+            nonlocal handler_ref
+            handler: PoeHandler = copy.deepcopy(handler_ref)
             if request["type"] == "query":
                 return EventSourceResponse(
                     handler.handle_query(QueryRequest.parse_obj(request))

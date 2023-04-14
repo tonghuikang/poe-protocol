@@ -35,6 +35,8 @@ PARSE_FAILURE_REPLY = """
 I could not load your resume.
 Please check whether the link is publicly accessible.
 
+---
+
 If you are uploading to Github, please ensure that you are sending something like
 
 https://raw.githubusercontent.com/jakegut/resume/master/resume.png
@@ -45,6 +47,7 @@ https://github.com/jakegut/resume/blob/master/resume.png
 
 To get to raw.githubusercontent.com from github.com, right click "Download" and "Copy link address".
 
+---
 
 If you are uploading to imgur, please ensure that you are sending something like
 
@@ -55,6 +58,8 @@ rather than
 https://imgur.com/a/6AeB8Vy
 
 To get from i.imgur.com from imgur.com, right click the image and "Copy image address".
+
+---
 
 This bot is not able to accept links from Google drive.
 

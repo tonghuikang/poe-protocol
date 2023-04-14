@@ -1,6 +1,6 @@
 # flake8: noqa: E501
 
-SYSTEM_PROMPT = """
+RESUME_SYSTEM_PROMPT = """
 You will be given text from a resume, extracted with Optical Character Recognition.
 You will suggest specific improvements for a resume, by the standards of US/Canada software industry.
 
@@ -45,10 +45,21 @@ At the end of each suggestion, add a markdown horizontal rule, which is `---`.
 Do not reproduce the full resume unless asked. You will not evaluate the resume, as your role is to suggest improvements.
 """
 
-RESUME_PROMPT = """
+RESUME_STARTING_PROMPT = """
 The resume is contained within the following triple backticks
 
 ```
 {}
 ```
+"""
+
+PAPER_SYSTEM_PROMPT = """
+You will be given text from a research paper, extracted with Optical Character Recognition.
+You will first provide a short summary, and then invite the user to ask questions.
+"""
+
+PAPER_STARTING_PROMPT = """
+The following contains the extracted text of the paper:
+
+{}
 """
