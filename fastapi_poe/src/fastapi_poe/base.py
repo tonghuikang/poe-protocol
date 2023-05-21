@@ -268,3 +268,5 @@ def run(bot: PoeBot, api_key: str = "", *, allow_without_key: bool = False) -> N
     uvicorn.run(app, host="0.0.0.0", port=port, log_config=log_config)
 
 
+if __name__ == "__main__":
+    run(PoeBot())

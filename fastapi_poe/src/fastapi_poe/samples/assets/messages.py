@@ -5,8 +5,11 @@ I am parsing your resume with Tesseract OCR ...
 
 """
 
+# TODO: show an image, if Markdown support for that happens before image upload
 UPDATE_LLM_QUERY = """\
-I have received your ![resume]({resume}).
+I have received your resume.
+
+{resume}
 
 I am querying the language model for analysis ...
 

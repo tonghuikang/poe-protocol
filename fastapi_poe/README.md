@@ -16,17 +16,16 @@ Before committing
 - `pre-commit run --all-files`
 - `pyright`
 
-
 What to take note when deploying to Ubuntu
+
 - `sudo apt install libpython3.9-dev` for `pdftotext`
 
-
 Manual testing procedure
+
 - Send multiple English words
 - Send one English word
 - Send a url to an image
 - Send a url to a pdf
-
 
 ## Write your own bot
 
