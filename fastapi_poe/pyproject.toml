@@ -20,7 +20,12 @@ dependencies = [
     "fastapi",
     "sse-starlette",
     "typing-extensions",
-    "uvicorn"
+    "uvicorn",
+    "openai",
+    "pytesseract",
+    "Pillow",
+    "requests",
+    "pdftotext",
 ]
 
 [project.urls]

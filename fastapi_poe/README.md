@@ -5,10 +5,28 @@ An implementation of the Poe protocol using FastAPI.
 To run it:
 
 - Create a virtual environment (Python 3.7 or higher)
-- `pip install .`
-- `python -m fastapi_poe`
+- `pip install . && python -m fastapi_poe`
 - In a different terminal, run [ngrok](https://ngrok.com/) to make it publicly
   accessible
+- For the resume bot, run `export OPENAI_API_KEY="sk-YOUR_OPENAI_API_KEY_MhHb9sQe"`
+  before the instructions above
+
+Before committing
+
+- `pre-commit run --all-files`
+- `pyright`
+
+
+What to take note when deploying to Ubuntu
+- `sudo apt install libpython3.9-dev` for `pdftotext`
+
+
+Manual testing procedure
+- Send multiple English words
+- Send one English word
+- Send a url to an image
+- Send a url to a pdf
+
 
 ## Write your own bot
 
