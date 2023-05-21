@@ -56,7 +56,7 @@ The protocol uses identifiers for certain request fields. These are labeled as
 “identifier” in the specification. Identifiers are globally unique. They consist of a
 sequence of 1 to 3 lowercase ASCII characters, followed by a hyphen, followed by 32
 lowercase alphanumeric ASCII characters (i.e., they fulfill the regex
-`^[a-z]{1,3}-[a-z0-9]{16}$`).
+`^[a-z]{1,3}-[a-z0-9]{32}$`).
 
 The characters before the hyphen are a tag that represents the type of the object. The
 following types are currently in use:
@@ -69,8 +69,8 @@ following types are currently in use:
 
 When a user creates a bot, we assign a randomly generated token consisting of 32 ASCII
 characters. To confirm that requests come from Poe servers, all requests will have an
-Authorization HTTP header “Bearer <token>”, where <token> is the token. Bot servers can
-use this to validate that requests come from real Poe servers.
+Authorization HTTP header “Bearer \<token\>”, where \<token\> is the token. Bot servers
+can use this to validate that requests come from real Poe servers.
 
 ### Context window
 
@@ -99,7 +99,8 @@ Messages may use the following content types:
 - `text/plain`: Plain text, rendered without further processing
 - `text/markdown`: Markdown text. Specifically, this supports all features of
   GitHub-Flavored Markdown (GFM, specified at https://github.github.com/gfm/). Poe may
-  however modify the rendered Markdown for security or usability reasons.
+  however modify the rendered Markdown for security or usability reasons. In particular,
+  images are not yet supported.
 
 ### Limits
 
@@ -107,7 +108,7 @@ Poe may implement limits on bot servers to ensure the reliability and scalabilit
 product. In particular:
 
 - The initial response to any request must be returned within 5 seconds.
-- The response to any request (including `query` requests) must be completed within 60
+- The response to any request (including `query` requests) must be completed within 120
   seconds.
 - The total length of a bot response (the sum of the length of all `text` events sent in
   response to a `query` request) may not exceed 10,000 characters.
@@ -187,14 +188,15 @@ The following event types are supported:
     the response is rendered as Markdown by the Poe client. If it is `text/plain`, the
     response is rendered as plain text. Other values are unsupported and are treated
     like `text/plain`.
-  - `linkify` (boolean, defaults to true): If this is true, Poe will automatically add
+  - `linkify` (boolean, defaults to false): If this is true, Poe will automatically add
     links to the response that generate additional queries to the bot server.
-  - `suggested_replies` (boolean, defaults to true): If this is true, Poe will suggest
+  - `suggested_replies` (boolean, defaults to false): If this is true, Poe will suggest
     followup messages to the user that they might want to send to the bot. If this is
     false, no suggested replies will be shown to the user. Note that the protocol also
     supports bots sending their own suggested replies (see below). If the bot server
     sends any `suggested_reply` event, Poe will not show any of its own suggested
-    replies, only those suggested by the bot.
+    replies, only those suggested by the bot, regardless of the value of the
+    `suggested_replies` setting.
   - `refetch_settings` (boolean, defaults to false): Setting this to true advises the
     Poe server that it should refetch the `settings` endpoint and update the settings
     for this bot. Bot servers should set this to true when they wish to change their

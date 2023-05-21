@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import os
+import sys
 from typing import AsyncIterator, Awaitable, Callable
 
 from aiohttp import web
@@ -57,7 +58,7 @@ async def auth_middleware(request: web.Request, handler):
     return web.HTTPUnauthorized(headers={"WWW-Authenticate": "Bearer"})
 
 
-class PoeHandler:
+class PoeBot:
     async def __call__(self, request: web.Request) -> web.Response:
         body = await request.json()
         request_type = body["type"]
@@ -156,17 +157,42 @@ async def index(request: web.Request) -> web.Response:
     )
 
 
+def find_auth_key(api_key: str, *, allow_without_key: bool = False) -> str | None:
+    if not api_key:
+        if os.environ.get("POE_API_KEY"):
+            api_key = os.environ["POE_API_KEY"]
+        else:
+            if allow_without_key:
+                return None
+            print(
+                "Please provide an API key. You can get a key from the create_bot form at:"
+            )
+            print("https://poe.com/create_bot?api=1")
+            print(
+                "You can pass the API key to the run() function or "
+                "use the POE_API_KEY environment variable."
+            )
+            sys.exit(1)
+    if len(api_key) != 32:
+        print("Invalid API key (should be 32 characters)")
+        sys.exit(1)
+    return api_key
+
+
 def run(
-    handler: Callable[[web.Request], Awaitable[web.Response]], api_key: str = ""
+    bot: Callable[[web.Request], Awaitable[web.Response]],
+    api_key: str = "",
+    *,
+    allow_without_key: bool = False,
 ) -> None:
     parser = argparse.ArgumentParser("aiohttp sample Poe bot server")
     parser.add_argument("-p", "--port", type=int, default=8080)
     args = parser.parse_args()
 
     global auth_key
-    auth_key = api_key if api_key else os.environ.get("POE_API_KEY")
+    auth_key = find_auth_key(api_key, allow_without_key=allow_without_key)
 
     app = web.Application(middlewares=[auth_middleware])
     app.add_routes([web.get("/", index)])
-    app.add_routes([web.post("/", handler)])
+    app.add_routes([web.post("/", bot)])
     web.run_app(app, port=args.port)

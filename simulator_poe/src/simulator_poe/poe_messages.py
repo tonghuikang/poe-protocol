@@ -1,3 +1,5 @@
+# TODO: Merge with fastapi_poe
+
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
@@ -18,7 +20,7 @@ class MessageFeedback(BaseModel):
 class ProtocolMessage(BaseModel):
     """A message as used in the Poe protocol."""
 
-    role: Literal["system", "user", "bot"]
+    role: Literal["system", "user", "bot", "assistant"]
     content: str
     content_type: ContentType
     timestamp: int
