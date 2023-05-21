@@ -52,14 +52,3 @@ The resume is contained within the following triple backticks
 {}
 ```
 """
-
-PAPER_SYSTEM_PROMPT = """
-You will be given text from a research paper, extracted with Optical Character Recognition.
-You will first provide a short summary, and then invite the user to ask questions.
-"""
-
-PAPER_STARTING_PROMPT = """
-The following contains the extracted text of the paper:
-
-{}
-"""

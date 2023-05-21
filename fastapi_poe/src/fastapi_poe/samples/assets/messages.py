@@ -6,6 +6,8 @@ I am parsing your resume with Tesseract OCR ...
 """
 
 UPDATE_LLM_QUERY = """\
+I have received your ![resume]({resume}).
+
 I am querying the language model for analysis ...
 
 ---
@@ -57,7 +59,7 @@ rather than
 
 https://imgur.com/a/6AeB8Vy
 
-To get from i.imgur.com from imgur.com, right click the image and "Copy image address".
+To get i.imgur.com from imgur.com, right click the image and "Copy image address".
 
 ---
 

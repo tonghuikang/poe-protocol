@@ -7,7 +7,7 @@ To run it:
 - Create a virtual environment (Python 3.7 or higher)
 - `pip install . && python -m fastapi_poe`
 - In a different terminal, run [ngrok](https://ngrok.com/) to make it publicly
-  accessible
+  accessible (i.e. `ngrok http 8080`)
 - For the resume bot, run `export OPENAI_API_KEY="sk-YOUR_OPENAI_API_KEY_MhHb9sQe"`
   before the instructions above
 

@@ -11,7 +11,7 @@ from typing import AsyncIterable
 import openai
 from sse_starlette.sse import ServerSentEvent
 
-from fastapi_poe import PoeHandler, run
+from fastapi_poe import PoeBot, run
 from fastapi_poe.samples.assets.messages import (
     MULTIWORD_FAILURE_REPLY,
     PARSE_FAILURE_REPLY,
@@ -45,7 +45,7 @@ conversation_cache = defaultdict(
 url_cache = {}
 
 
-class ResumeHandler(PoeHandler):
+class ResumeHandler(PoeBot):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
         user_statement: str = query.query[-1].content
         print(query.conversation_id, user_statement)
@@ -71,7 +71,7 @@ class ResumeHandler(PoeHandler):
             if not success:
                 yield self.text_event(PARSE_FAILURE_REPLY)
                 return
-            yield self.text_event(UPDATE_LLM_QUERY)
+            yield self.text_event(UPDATE_LLM_QUERY.format(resume=content_url))
             url_cache[query.conversation_id] = content_url
             user_statement = RESUME_STARTING_PROMPT.format(resume_string)
 

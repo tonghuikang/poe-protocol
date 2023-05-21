@@ -1,5 +1,5 @@
 from fastapi_poe import run
-from fastapi_poe.samples.echo import EchoBot
+from fastapi_poe.samples.resume import ResumeHandler
 
 if __name__ == "__main__":
-    run(EchoBot())
+    run(ResumeHandler(), allow_without_key=True)
