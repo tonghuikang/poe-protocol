@@ -6,6 +6,7 @@ Sample bot that echoes back messages.
 from __future__ import annotations
 
 import linecache
+import re
 import sys
 import traceback
 from io import StringIO
@@ -79,12 +80,33 @@ def strip_code(code):
     return code
 
 
+def strip_colors(text):
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)
+
+
+def wrap_text_in_code_block(text):
+    return "\n```\n" + text[:-1] + "\n```\n"
+
+
 class EchoBot(PoeBot):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
         code = query.query[-1].content
         code = strip_code(code)
         captured_output, captured_error = execute_code(code)
-        yield self.text_event(captured_output)
+
+        if not captured_output and not captured_error:
+            yield self.text_event("No output or error recorded.")
+
+        if captured_output:
+            captured_output = strip_colors(captured_output)
+            captured_output = wrap_text_in_code_block(captured_output)
+            yield self.text_event(captured_output)
+
+        if not captured_output and captured_error:
+            captured_error = strip_colors(captured_error)
+            captured_error = wrap_text_in_code_block(captured_error)
+            yield self.text_event(captured_error)
 
 
 if __name__ == "__main__":
