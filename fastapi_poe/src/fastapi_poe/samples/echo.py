@@ -70,9 +70,19 @@ def execute_code(code):
     return captured_output, captured_error
 
 
+def strip_code(code):
+    if len(code.strip()) < 6:
+        return code
+    code = code.strip()
+    if code.startswith("```") and code.endswith("```"):
+        code = code[3:-3]
+    return code
+
+
 class EchoBot(PoeBot):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
         code = query.query[-1].content
+        code = strip_code(code)
         captured_output, captured_error = execute_code(code)
         yield self.text_event(captured_output)
 

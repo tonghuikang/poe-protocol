@@ -20,7 +20,8 @@ dependencies = [
     "fastapi",
     "sse-starlette",
     "typing-extensions",
-    "uvicorn"
+    "uvicorn",
+    "ipython"
 ]
 
 [project.urls]
