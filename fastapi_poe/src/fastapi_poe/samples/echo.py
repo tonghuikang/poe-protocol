@@ -5,18 +5,19 @@ Sample bot that echoes back messages.
 """
 from __future__ import annotations
 
-import linecache
 import re
 import sys
 import traceback
-from io import StringIO
 from typing import AsyncIterable
 
 from IPython import get_ipython
 from sse_starlette.sse import ServerSentEvent
+from wasm_exec import WasmExecutor
 
 from fastapi_poe import PoeBot, run
 from fastapi_poe.types import QueryRequest
+
+wasm = WasmExecutor()
 
 ipython = get_ipython()
 
@@ -29,44 +30,19 @@ if ipython is None:
 
 def execute_code(code):
     # Redirect stdout temporarily to capture the output of the code snippet
-    old_stdout = sys.stdout
-    sys.stdout = StringIO()
+    captured_output, captured_error = "", ""
 
-    # Execute the code with the silent parameter set to True
-    result = ipython.run_cell(
-        code, silent=True, store_history=False, shell_futures=False
-    )
+    try:
+        wasm = WasmExecutor()
+        captured_output = wasm.exec(code).text
+    except Exception:
+        # Capture the exception and its traceback
+        exc_type, exc_value, exc_traceback = sys.exc_info()
 
-    # Restore the original stdout and retrieve the captured output
-    captured_output = sys.stdout.getvalue()
-    sys.stdout = old_stdout
-
-    # Check if there is an error and capture the error message
-    captured_error = ""
-    result_error = result.error_before_exec or result.error_in_exec
-    if result_error is not None:
-        etype, evalue, tb = type(result_error), result_error, result_error.__traceback__
-        captured_error = "".join(traceback.format_exception(etype, evalue, tb))
-
-        # Add additional lines of context for each traceback level
-        tb_info = traceback.extract_tb(tb)
-        if result.error_in_exec:
-            captured_error += "\n\nAdditional context for each traceback level:\n"
-            for level, (filename, lineno, func, _) in enumerate(tb_info[1:], start=1):
-                context_before = max(1, lineno - 3)
-                context_after = lineno + 3
-                lines = [
-                    linecache.getline(filename, i).rstrip()
-                    for i in range(context_before, context_after + 1)
-                ]
-                formatted_lines = [
-                    f"{i}: {line}" for i, line in enumerate(lines, start=context_before)
-                ]
-                captured_error += (
-                    f"\nLevel {level} ({filename}, line {lineno}, in {func}):\n"
-                    + "\n".join(formatted_lines)
-                    + "\n"
-                )
+        # Format the traceback as a string
+        captured_error = "".join(
+            traceback.format_exception(exc_type, exc_value, exc_traceback)
+        )
 
     return captured_output, captured_error
 
@@ -86,7 +62,7 @@ def strip_colors(text):
 
 
 def wrap_text_in_code_block(text):
-    return "\n```\n" + text[:-1] + "\n```\n"
+    return "\n```\n" + text + "\n```\n"
 
 
 class EchoBot(PoeBot):
