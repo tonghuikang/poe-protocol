@@ -21,7 +21,6 @@ dependencies = [
     "sse-starlette",
     "typing-extensions",
     "uvicorn",
-    "ipython",
     "wasm_exec",
 ]
 

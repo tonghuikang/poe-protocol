@@ -5,36 +5,29 @@ Sample bot that echoes back messages.
 """
 from __future__ import annotations
 
+import asyncio
 import re
 import sys
 import traceback
 from typing import AsyncIterable
 
-from IPython import get_ipython
 from sse_starlette.sse import ServerSentEvent
 from wasm_exec import WasmExecutor
 
 from fastapi_poe import PoeBot, run
 from fastapi_poe.types import QueryRequest
 
-wasm = WasmExecutor()
 
-ipython = get_ipython()
-
-if ipython is None:
-    # This means the script is being run outside an IPython environment
-    from IPython.terminal.embed import InteractiveShellEmbed
-
-    ipython = InteractiveShellEmbed()
-
-
-def execute_code(code):
+async def execute_code(code):
     # Redirect stdout temporarily to capture the output of the code snippet
     captured_output, captured_error = "", ""
 
     try:
+        # Create an event loop and use it to run WasmExecutor asynchronously
+        loop = asyncio.get_event_loop()
         wasm = WasmExecutor()
-        captured_output = wasm.exec(code).text
+        result = await loop.run_in_executor(None, wasm.exec, code)
+        captured_output = result.text
     except Exception:
         # Capture the exception and its traceback
         exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -69,7 +62,7 @@ class EchoBot(PoeBot):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
         code = query.query[-1].content
         code = strip_code(code)
-        captured_output, captured_error = execute_code(code)
+        captured_output, captured_error = await execute_code(code)
 
         if not captured_output and not captured_error:
             yield self.text_event("No output or error recorded.")
