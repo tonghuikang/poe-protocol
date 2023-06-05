@@ -6,37 +6,89 @@ Sample bot that echoes back messages.
 from __future__ import annotations
 
 import asyncio
+import os
 import re
-import sys
-import traceback
+import tempfile
 from typing import AsyncIterable
 
 from sse_starlette.sse import ServerSentEvent
-from wasm_exec import WasmExecutor
+from wasmtime import Config, Engine, Linker, Module, Store, WasiConfig
 
 from fastapi_poe import PoeBot, run
 from fastapi_poe.types import QueryRequest
+
+TESTCASE_FILES = ["test001", "test002"]
+
+
+def run_code(code, stdin_file=None):
+    fuel = 4_000_000_000
+
+    engine_cfg = Config()
+    engine_cfg.consume_fuel = True
+    engine_cfg.cache = True
+
+    linker = Linker(Engine(engine_cfg))
+    linker.define_wasi()
+
+    python_module = Module.from_file(linker.engine, "bin/python-3.11.1.wasm")
+
+    config = WasiConfig()
+
+    config.argv = ("python", "-c", code)
+    config.preopen_dir(".", "/")
+
+    with tempfile.TemporaryDirectory() as chroot:
+        out_log = os.path.join(chroot, "out.log")
+        err_log = os.path.join(chroot, "err.log")
+        config.stdin_file = stdin_file
+        config.stdout_file = out_log
+        config.stderr_file = err_log
+
+        store = Store(linker.engine)
+
+        # Limits how many instructions can be executed:
+        store.add_fuel(fuel)
+        store.set_wasi(config)
+        instance = linker.instantiate(store, python_module)
+
+        # _start is the default wasi main function
+        start = instance.exports(store)["_start"]
+
+        mem = instance.exports(store)["memory"]
+
+        error = None
+        try:
+            start(store)
+        except Exception:
+            with open(err_log) as f:
+                error = f.read()
+
+        with open(out_log) as f:
+            result = f.read()
+
+        return (
+            result,
+            error,
+            mem.size(store),
+            mem.data_len(store),
+            store.fuel_consumed(),
+        )
 
 
 async def execute_code(code):
     # Redirect stdout temporarily to capture the output of the code snippet
     captured_output, captured_error = "", ""
 
-    try:
-        # Create an event loop and use it to run WasmExecutor asynchronously
-        loop = asyncio.get_event_loop()
-        wasm = WasmExecutor()
-        result = await loop.run_in_executor(None, wasm.exec, code)
-        captured_output = result.text
-    except Exception:
-        # Capture the exception and its traceback
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-
-        # Format the traceback as a string
-        captured_error = "".join(
-            traceback.format_exception(exc_type, exc_value, exc_traceback)
-        )
-
+    loop = asyncio.get_event_loop()
+    (
+        captured_output,
+        captured_error,
+        size,
+        data_len,
+        fuel_consumed,
+    ) = await loop.run_in_executor(
+        None, run_code, code, "./src/fastapi_poe/samples/test003.in"
+    )
     return captured_output, captured_error
 
 
@@ -72,7 +124,7 @@ class EchoBot(PoeBot):
             captured_output = wrap_text_in_code_block(captured_output)
             yield self.text_event(captured_output)
 
-        if not captured_output and captured_error:
+        if captured_error:
             captured_error = strip_colors(captured_error)
             captured_error = wrap_text_in_code_block(captured_error)
             yield self.text_event(captured_error)

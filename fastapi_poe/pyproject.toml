@@ -21,7 +21,7 @@ dependencies = [
     "sse-starlette",
     "typing-extensions",
     "uvicorn",
-    "wasm_exec",
+    "wasmtime",
 ]
 
 [project.urls]
