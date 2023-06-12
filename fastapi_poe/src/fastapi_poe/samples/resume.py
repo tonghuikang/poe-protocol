@@ -58,9 +58,11 @@ class ResumeBot(PoeBot):
             if content_url.endswith(".pdf"):
                 success, resume_string = await parse_pdf_document_from_url(content_url)
             else:  # assume image
+                print(content_url)
                 success, resume_string = await parse_image_document_from_url(
                     content_url
                 )
+                print(success, resume_string)
 
             if not success:
                 yield self.text_event(PARSE_FAILURE_REPLY)

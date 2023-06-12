@@ -20,7 +20,8 @@ async def parse_image_document_from_url(image_url: str) -> tuple[bool, str]:
         text = pytesseract.image_to_string(img, config=custom_config)
         text = text[:2000]
         return True, text
-    except BaseException:
+    except BaseException as e:
+        print(e)
         return False, ""
 
 
