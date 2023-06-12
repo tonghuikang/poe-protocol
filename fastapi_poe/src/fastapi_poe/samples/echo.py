@@ -1,6 +1,12 @@
 """
 
-Sample bot that echoes back messages.
+Sample bot executes your Python code.
+
+Main reference
+https://til.simonwillison.net/webassembly/python-in-a-wasm-sandbox
+
+Guide
+https://bytecodealliance.github.io/wasmtime-py/
 
 """
 from __future__ import annotations
@@ -16,16 +22,12 @@ from wasmtime import Config, Engine, Linker, Module, Store, WasiConfig
 from fastapi_poe import PoeBot, run
 from fastapi_poe.types import QueryRequest
 
-STDIO_PREFIXES = [
-    "./src/fastapi_poe/samples/test001",
-    "./src/fastapi_poe/samples/test002",
-    "./src/fastapi_poe/samples/test003",
-]
 TOTAL_FUEL = 10_000_000_000
 
 
 async def run_code(code, stdin_file=None):
     # Note: not really async, nice to fix
+    # Note: not able to import numpy, pandas etc, nice to fix
     fuel = TOTAL_FUEL
 
     engine_cfg = Config()
