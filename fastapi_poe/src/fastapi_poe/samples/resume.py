@@ -32,12 +32,6 @@ from fastapi_poe.types import QueryRequest
 assert openai.api_key
 
 
-SETTINGS = {
-    "report_feedback": True,
-    "context_clear_window_secs": 60 * 60,
-    "allow_user_context_clear": True,
-}
-
 conversation_cache = defaultdict(
     lambda: [{"role": "system", "content": RESUME_SYSTEM_PROMPT}]
 )
@@ -45,7 +39,7 @@ conversation_cache = defaultdict(
 url_cache = {}
 
 
-class ResumeHandler(PoeBot):
+class ResumeBot(PoeBot):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
         user_statement: str = query.query[-1].content
         print(query.conversation_id, user_statement)
@@ -89,4 +83,4 @@ class ResumeHandler(PoeBot):
 
 
 if __name__ == "__main__":
-    run(ResumeHandler())
+    run(ResumeBot())
