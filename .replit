@@ -1,4 +1,4 @@
-run = "cd fastapi_poe && pip install . && python -m fastapi_poe"
+run = "git reset --hard HEAD && git clean -fd && cd fastapi_poe && pip install . && python -m fastapi_poe"
 
 # The primary language of the repl. There can be others, though!
 language = "python3"
@@ -89,4 +89,4 @@ pattern = "**/*.py"
 start = "pylsp"
 
 [deployment]
-run = ["sh", "-c", "cd fastapi_poe && pip install . && python -m fastapi_poe"]
+run = ["sh", "-c", "git reset --hard HEAD && git clean -fd && cd fastapi_poe && pip install . && python -m fastapi_poe"]
