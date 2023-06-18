@@ -5,9 +5,6 @@ Sample bot that echoes back messages.
 """
 from __future__ import annotations
 
-import os
-import sys
-from collections import defaultdict
 from typing import AsyncIterable
 from urllib.parse import urlparse, urlunparse
 
@@ -17,31 +14,8 @@ from bs4 import BeautifulSoup
 from sse_starlette.sse import ServerSentEvent
 
 from fastapi_poe import PoeBot, run
+from fastapi_poe.client import MetaMessage, stream_request
 from fastapi_poe.types import QueryRequest
-
-if os.environ.get("OPENAI_API_KEY"):
-    openai.api_key = os.environ["OPENAI_API_KEY"]
-else:
-    print("You need an OpenAI API key to start this API bot.")
-    sys.exit(1)
-
-try:
-    models = openai.Model.list()
-except openai.error.AuthenticationError:
-    print("You need a valid OpenAI API key")
-    sys.exit(1)
-
-
-SYSTEM_PROMPT = """
-You are a copywriter that writes a meaningful question and an authentic promoted answer on Quora.
-
-Always reply in the following format
-
-<question>
----
-<answer>
-""".strip()
-
 
 PROMPT_TEMPLATE = """
 You are given the the content from the url {url}.
@@ -57,13 +31,15 @@ Write a meaningful question
 Write an authentic answer
 - Do not promote the product early.
 - Break down the answer into smaller paragraphs.
-- Include a [markdown](backlink) to the product at the end of the answer.
+- Include a [markdown](backlink) to the product at the end of the answer, organically.
 
-Reply exactly in the following format
+Reply EXACTLY in the following markdown format. Do not add words.
 
 <question>
 ---
 <answer>""".strip()
+
+conversation_cache = set()
 
 
 def resolve_url_scheme(url):
@@ -102,6 +78,9 @@ def extract_readable_text(url):
     except requests.exceptions.InvalidURL:
         print(f"URL is invalid: {url}")
         return None
+    except Exception:
+        print(f"Unable to load URL: {url}")
+        return None
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, "html.parser")
@@ -125,9 +104,6 @@ def extract_readable_text(url):
         return None
 
 
-conversation_cache = defaultdict(lambda: [{"role": "system", "content": SYSTEM_PROMPT}])
-
-
 def process_message_with_gpt(message_history: list[dict[str, str]]) -> str:
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo", messages=message_history, temperature=0.1
@@ -141,28 +117,28 @@ class EchoBot(PoeBot):
         if query.conversation_id not in conversation_cache:
             url = query.query[-1].content.strip()
             url = resolve_url_scheme(url)
+            yield self.replace_response_event(f"Attempting to load [{url}]({url}) ...")
             content = extract_readable_text(url)
             if content is None:
-                yield self.text_event(
+                yield self.replace_response_event(
                     "Please submit an URL that you want to create a promoted answer for."
                 )
                 return
-            user_statement = PROMPT_TEMPLATE.format(content=content, url=url)
 
-        else:
-            user_statement = query.query[-1].content
+            # replace last message with the prompt
+            query.query[-1].content = PROMPT_TEMPLATE.format(content=content, url=url)
+            conversation_cache.add(query.conversation_id)
+            yield self.replace_response_event("")
 
-        conversation_cache[query.conversation_id].append(
-            {"role": "user", "content": user_statement}
-        )
-
-        message_history = conversation_cache[query.conversation_id]
-        bot_statement = process_message_with_gpt(message_history)
-        yield self.text_event(bot_statement)
-
-        conversation_cache[query.conversation_id].append(
-            {"role": "assistant", "content": bot_statement}
-        )
+        async for msg in stream_request(query, "sage", query.api_key):
+            if isinstance(msg, MetaMessage):
+                continue
+            elif msg.is_suggested_reply:
+                yield self.suggested_reply_event(msg.text)
+            elif msg.is_replace_response:
+                yield self.replace_response_event(msg.text)
+            else:
+                yield self.text_event(msg.text)
 
 
 if __name__ == "__main__":
