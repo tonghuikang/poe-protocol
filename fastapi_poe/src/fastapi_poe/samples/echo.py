@@ -17,8 +17,8 @@ from fastapi_poe.client import MetaMessage, stream_request
 from fastapi_poe.types import QueryRequest
 
 PROMPT_TEMPLATE = """
-You are given the the content from the url {url}.
-The owner of the site wants to promote their site on Quora, a question-and-answer site.
+You are given the the content from the site {url}.
+The owner of the site wants to advertise on Quora, a question-and-answer site.
 
 <content>
 {content}
@@ -30,9 +30,10 @@ Write a meaningful question
 Write an authentic answer
 - Do not promote the product early.
 - Break down the answer into smaller paragraphs.
-- Include a [markdown](backlink) to the product at the end of the answer, organically.
+- At the end of the answer, organically and naturally promote the product.
+- When the product is mentioned, use markdown to make a hyperlink.
 
-Reply EXACTLY in the following markdown format. Do not add words.
+Reply in the following format in markdown. Do not add words.
 
 <question>
 ---
@@ -110,7 +111,7 @@ class EchoBot(PoeBot):
             url = resolve_url_scheme(url)
             yield self.replace_response_event(f"Attempting to load [{url}]({url}) ...")
             content = extract_readable_text(url)
-            content = content[:8000]  # Trying to approximate the limit
+            content = content[:5000]  # TODO: use Tiktoken
             if content is None:
                 yield self.replace_response_event(
                     "Please submit an URL that you want to create a promoted answer for."
