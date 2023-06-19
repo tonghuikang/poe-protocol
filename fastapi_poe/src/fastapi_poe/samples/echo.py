@@ -6,9 +6,11 @@ Sample bot that echoes back messages.
 from __future__ import annotations
 
 import re
+from io import BytesIO
 from typing import AsyncIterable
 from urllib.parse import urlparse, urlunparse
 
+import pdftotext
 import requests
 from bs4 import BeautifulSoup
 from sse_starlette.sse import ServerSentEvent
@@ -57,6 +59,7 @@ def insert_newlines(element):
 
 
 def extract_readable_text(url):
+    # Note: many websites seem to block this, needs fixing
     try:
         response = requests.get(url)
     except requests.exceptions.InvalidURL:
@@ -88,13 +91,30 @@ def extract_readable_text(url):
         return None
 
 
+def parse_pdf_document_from_url(pdf_url: str) -> tuple[bool, str]:
+    try:
+        response = requests.get(pdf_url)
+        with BytesIO(response.content) as f:
+            pdf = pdftotext.PDF(f)
+        text = "\n\n".join(pdf)
+        text = text[:2000]
+        return True, text
+    except requests.exceptions.MissingSchema:
+        return False, ""
+    except BaseException:
+        return False, ""
+
+
 class EchoBot(PoeBot):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
         user_statement = query.query[-1].content.strip()
         urls = extract_urls(user_statement)
 
         for url in urls:
-            content = extract_readable_text(url)[:3000]  # to fix
+            if url.endswith(".pdf"):
+                _, content = parse_pdf_document_from_url(url)
+            else:
+                content = extract_readable_text(url)[:3000]  # to fix
             user_statement += "\n{url} contains the following content:"
             user_statement += "\n\n---\n\n"
             user_statement += content

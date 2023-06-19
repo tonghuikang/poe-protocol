@@ -3,6 +3,8 @@
     pkgs.python310Full
     pkgs.replitPackages.prybar-python310
     pkgs.replitPackages.stderred
+    pkgs.pkg-config
+    pkgs.poppler_utils
   ];
   env = {
     PYTHON_LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [

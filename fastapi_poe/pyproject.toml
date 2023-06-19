@@ -24,6 +24,7 @@ dependencies = [
     "httpx",
     "httpx-sse",
     "beautifulsoup4",
+    "pdftotext",
 ]
 
 [project.urls]
