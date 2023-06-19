@@ -22,6 +22,8 @@ dependencies = [
     "typing-extensions",
     "uvicorn",
     "wasmtime",
+    "httpx",
+    "httpx-sse",
 ]
 
 [project.urls]
