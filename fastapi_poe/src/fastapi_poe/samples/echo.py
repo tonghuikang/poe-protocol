@@ -8,7 +8,6 @@ from __future__ import annotations
 from typing import AsyncIterable
 from urllib.parse import urlparse, urlunparse
 
-import openai
 import requests
 from bs4 import BeautifulSoup
 from sse_starlette.sse import ServerSentEvent
@@ -104,14 +103,6 @@ def extract_readable_text(url):
         return None
 
 
-def process_message_with_gpt(message_history: list[dict[str, str]]) -> str:
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo", messages=message_history, temperature=0.1
-    )
-    bot_statement = response["choices"][0]["message"]["content"]
-    return bot_statement
-
-
 class EchoBot(PoeBot):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
         if query.conversation_id not in conversation_cache:
@@ -119,6 +110,7 @@ class EchoBot(PoeBot):
             url = resolve_url_scheme(url)
             yield self.replace_response_event(f"Attempting to load [{url}]({url}) ...")
             content = extract_readable_text(url)
+            content = content[:8000]  # Trying to approximate the limit
             if content is None:
                 yield self.replace_response_event(
                     "Please submit an URL that you want to create a promoted answer for."
