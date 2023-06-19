@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import os
 import shutil
-import subprocess
 import tempfile
 import uuid
 from typing import AsyncIterable
@@ -130,7 +129,6 @@ class EchoBot(PoeBot):
             code
         )
         reply_string = format_output(captured_output, captured_error, fuel_consumed)
-        subprocess.run(["rsync", "-a", "--delete", "../tmp/" + "."])
         yield self.text_event(reply_string)
 
 
