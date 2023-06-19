@@ -1,5 +1,6 @@
 { pkgs }: {
   deps = [
+    pkgs.rsync
     pkgs.python310Full
     pkgs.replitPackages.prybar-python310
     pkgs.replitPackages.stderred

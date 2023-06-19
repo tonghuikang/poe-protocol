@@ -4,3 +4,4 @@ __pycache__/
 dist/
 *.ipynb
 .DS_Store
+tmp/

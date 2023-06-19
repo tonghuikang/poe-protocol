@@ -12,6 +12,7 @@ https://bytecodealliance.github.io/wasmtime-py/
 from __future__ import annotations
 
 import os
+import subprocess
 import tempfile
 import uuid
 from typing import AsyncIterable
@@ -28,6 +29,8 @@ TOTAL_FUEL = 10_000_000_000
 async def run_code(code, stdin_file=None):
     # Note: not really async, nice to fix
     # Note: not able to import numpy, pandas etc, nice to fix
+
+    subprocess.run(["rsync", "-a", "--delete", "../tmp/" + "."])
     fuel = TOTAL_FUEL
 
     engine_cfg = Config()
@@ -43,6 +46,8 @@ async def run_code(code, stdin_file=None):
 
     config.env = [("PYTHONHOME", "/usr/local")]
     config.argv = ("python", "-c", code)
+
+    # I want to disable this, instead of rsync every time
     config.preopen_dir(".", "/")
 
     random_uuid = uuid.uuid4()
@@ -73,6 +78,8 @@ async def run_code(code, stdin_file=None):
         except Exception:
             with open(err_log) as f:
                 error = f.read()
+
+        subprocess.run(["rsync", "-a", "--delete", "../tmp/" + "."])
 
         # Note: there is no error if the code times out, nice to fix
         with open(out_log) as f:
