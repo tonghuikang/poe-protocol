@@ -2,3 +2,5 @@ __pycache__/
 **/venv
 .vscode/
 dist/
+*.ipynb
+.DS_Store
