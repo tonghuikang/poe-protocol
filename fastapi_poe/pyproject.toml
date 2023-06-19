@@ -23,6 +23,7 @@ dependencies = [
     "uvicorn",
     "httpx",
     "httpx-sse",
+    "beautifulsoup4",
 ]
 
 [project.urls]
