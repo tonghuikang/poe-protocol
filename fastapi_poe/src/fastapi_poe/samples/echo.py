@@ -12,6 +12,7 @@ https://bytecodealliance.github.io/wasmtime-py/
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import tempfile
 import uuid
@@ -30,7 +31,7 @@ async def run_code(code, stdin_file=None):
     # Note: not really async, nice to fix
     # Note: not able to import numpy, pandas etc, nice to fix
 
-    subprocess.run(["rsync", "-a", "--delete", "../tmp/" + "."])
+    shutil.copytree("../tmp", ".", dirs_exist_ok=True)
     fuel = TOTAL_FUEL
 
     engine_cfg = Config()
@@ -78,8 +79,6 @@ async def run_code(code, stdin_file=None):
         except Exception:
             with open(err_log) as f:
                 error = f.read()
-
-        subprocess.run(["rsync", "-a", "--delete", "../tmp/" + "."])
 
         # Note: there is no error if the code times out, nice to fix
         with open(out_log) as f:
@@ -131,6 +130,7 @@ class EchoBot(PoeBot):
             code
         )
         reply_string = format_output(captured_output, captured_error, fuel_consumed)
+        subprocess.run(["rsync", "-a", "--delete", "../tmp/" + "."])
         yield self.text_event(reply_string)
 
 
