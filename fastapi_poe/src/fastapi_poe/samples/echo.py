@@ -108,7 +108,7 @@ def format_output(captured_output, captured_error, fuel_consumed) -> str:
         line = f"\n```error\n{captured_error}\n```"
         lines.append(line)
 
-    line = f"Approximate time taken: {fuel_consumed//1_000_000} ms"
+    line = f"\nApproximate time taken: {fuel_consumed//1_000_000} ms"
     lines.append(line)
 
     return "\n".join(lines)
