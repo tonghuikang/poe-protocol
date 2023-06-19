@@ -1,4 +1,4 @@
-run = "git reset --hard HEAD && git clean -fd && rsync -a --delete ./fastapi_poe/ ./tmp && cd fastapi_poe && pip install . && python -m fastapi_poe"
+run = "git reset --hard HEAD && git clean -fd && mkdir -p ./tmp && rsync -a --delete ./fastapi_poe/ ./tmp && cd fastapi_poe && pip install . && python -m fastapi_poe"
 
 # The primary language of the repl. There can be others, though!
 language = "python3"
