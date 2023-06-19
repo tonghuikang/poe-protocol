@@ -130,7 +130,10 @@ class EchoBot(PoeBot):
             conversation_cache.add(query.conversation_id)
             yield self.replace_response_event("")
 
-        async for msg in stream_request(query, "sage", query.api_key):
+        current_message = ""
+
+        async for msg in stream_request(query, "AnswerPromoted", query.api_key):
+            # Note: See https://poe.com/AnswerPromoted for the prompt
             if isinstance(msg, MetaMessage):
                 continue
             elif msg.is_suggested_reply:
@@ -138,7 +141,8 @@ class EchoBot(PoeBot):
             elif msg.is_replace_response:
                 yield self.replace_response_event(msg.text)
             else:
-                yield self.text_event(msg.text)
+                current_message += msg.text
+                yield self.replace_response_event(current_message)
 
 
 if __name__ == "__main__":
