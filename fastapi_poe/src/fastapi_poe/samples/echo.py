@@ -41,6 +41,7 @@ async def run_code(code, stdin_file=None):
 
     config = WasiConfig()
 
+    config.env(["PYTHONHOME", "/usr/local"])
     config.argv = ("python", "-c", code)
     config.preopen_dir(".", "/")
 
