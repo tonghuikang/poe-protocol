@@ -5,6 +5,7 @@ Sample bot that echoes back messages.
 """
 from __future__ import annotations
 
+import re
 from typing import AsyncIterable
 from urllib.parse import urlparse, urlunparse
 
@@ -16,30 +17,13 @@ from fastapi_poe import PoeBot, run
 from fastapi_poe.client import MetaMessage, stream_request
 from fastapi_poe.types import QueryRequest
 
-PROMPT_TEMPLATE = """
-You are given the the content from the site {url}.
-The owner of the site wants to advertise on Quora, a question-and-answer site.
+url_regex = re.compile(
+    r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+)
 
-<content>
-{content}
-</content>
 
-Write a meaningful question
-- Do not mention the product in the question.
-
-Write an authentic answer
-- Do not promote the product early.
-- Break down the answer into smaller paragraphs.
-- At the end of the answer, organically and naturally promote the product.
-- When the product is mentioned, use markdown to make a hyperlink.
-
-Reply in the following format in markdown. Do not add words.
-
-<question>
----
-<answer>""".strip()
-
-conversation_cache = set()
+def extract_urls(text):
+    return url_regex.findall(text)
 
 
 def resolve_url_scheme(url):
@@ -106,26 +90,21 @@ def extract_readable_text(url):
 
 class EchoBot(PoeBot):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
-        if query.conversation_id not in conversation_cache:
-            url = query.query[-1].content.strip()
-            url = resolve_url_scheme(url)
-            yield self.replace_response_event(f"Attempting to load [{url}]({url}) ...")
-            content = extract_readable_text(url)
-            content = content[:5000]  # TODO: use Tiktoken
-            if content is None:
-                yield self.replace_response_event(
-                    "Please submit an URL that you want to create a promoted answer for."
-                )
-                return
+        user_statement = query.query[-1].content.strip()
+        urls = extract_urls(user_statement)
 
-            # replace last message with the prompt
-            query.query[-1].content = PROMPT_TEMPLATE.format(content=content, url=url)
-            conversation_cache.add(query.conversation_id)
-            yield self.replace_response_event("")
+        for url in urls:
+            content = extract_readable_text(url)[:3000]  # to fix
+            user_statement += "\n{url} contains the following content:"
+            user_statement += "\n\n---\n\n"
+            user_statement += content
+            user_statement += "\n\n---\n\n"
+
+        query.query[-1].content = user_statement
 
         current_message = ""
 
-        async for msg in stream_request(query, "AnswerPromoted", query.api_key):
+        async for msg in stream_request(query, "ChatGPT", query.api_key):
             # Note: See https://poe.com/AnswerPromoted for the prompt
             if isinstance(msg, MetaMessage):
                 continue
