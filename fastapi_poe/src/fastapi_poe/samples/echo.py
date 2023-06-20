@@ -19,8 +19,8 @@ from fastapi_poe.types import QueryRequest
 # introduction to be added https://i.imgur.com/xbXviUO.gif
 
 EMOJI_INVERSE_MAP = {
-    "https://i.imgur.com/lPHtYl9.gif": ["🔥", "💥", "🧙‍♀️"],
-    "https://i.imgur.com/aJ9Pnas.gif": ["🔥", "💥", "🧙‍♀️"],
+    "https://i.imgur.com/lPHtYl9.gif": ["🔥"],
+    "https://i.imgur.com/aJ9Pnas.gif": ["🧙‍♀️"],
     "https://i.imgur.com/hgphb9b.gif": ["😱"],
     "https://i.imgur.com/3YY02tm.gif": ["😱"],
     "https://i.imgur.com/nx8WjtW.gif": ["🤗"],
@@ -38,7 +38,8 @@ for image_url, emojis in EMOJI_INVERSE_MAP.items():
     for emoji in emojis:
         EMOJI_MAP[emoji].append(image_url)
 
-AVAILABLE_EMOJIS = "\n".join(EMOJI_MAP.keys())
+DEFAULT_EMOJIS = set(EMOJI_MAP.keys())
+CONVERSATION_SUGGESTED_EMOJIS = defaultdict(lambda: DEFAULT_EMOJIS)
 
 ITALICS_PATTERN = r"(?<!\*)\*([^\*]+)\*(?!\*)|(?<!_)_([^_]+)_(?!_)"
 
@@ -54,7 +55,7 @@ You will summarize the character reply into one emojis
 </character_statement>
 
 This are the available emojis
-😱,🤗,🙏,🤩,😎,😍,👍
+{available_emojis}
 """.strip()
 
 
@@ -83,11 +84,13 @@ class EchoBot(PoeBot):
             character_statement = italics_from_character
             user_statement = ""
 
+        available_emojis = CONVERSATION_SUGGESTED_EMOJIS[query.conversation_id]
+
         print("character_statement", character_statement)
         query.query[-1].content = EMOJI_PROMPT_TEMPLATE.format(
             user_statement=user_statement,
             character_statement=character_statement,
-            emoji_list=AVAILABLE_EMOJIS,
+            available_emojis=available_emojis,
         )
         query.query = [query.query[-1]]
 
@@ -104,6 +107,7 @@ class EchoBot(PoeBot):
                 emoji_classification += msg.text
 
         emoji_classification = emoji_classification.strip()
+        available_emojis.discard(emoji_classification)
         print("emoji_classification", emoji_classification)
 
         image_url_selection = EMOJI_MAP.get(emoji_classification)
