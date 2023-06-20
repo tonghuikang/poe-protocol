@@ -5,128 +5,57 @@ Sample bot that echoes back messages.
 """
 from __future__ import annotations
 
+import random
 from typing import AsyncIterable
-from urllib.parse import urlparse, urlunparse
 
-import requests
-from bs4 import BeautifulSoup
 from sse_starlette.sse import ServerSentEvent
 
 from fastapi_poe import PoeBot, run
 from fastapi_poe.client import MetaMessage, stream_request
 from fastapi_poe.types import QueryRequest
 
-PROMPT_TEMPLATE = """
-You are given the the content from the site {url}.
-The owner of the site wants to advertise on Quora, a question-and-answer site.
+# introduction to be added https://i.imgur.com/xbXviUO.gif
 
-<content>
-{content}
-</content>
+EMOJI_MAP = {
+    "🔥": ["https://i.imgur.com/lPHtYl9.gif", "https://i.imgur.com/aJ9Pnas.gif"],
+    "💥": ["https://i.imgur.com/lPHtYl9.gif", "https://i.imgur.com/aJ9Pnas.gif"],
+    "🧙‍♀️": ["https://i.imgur.com/lPHtYl9.gif", "https://i.imgur.com/aJ9Pnas.gif"],
+    "😱": ["https://i.imgur.com/3YY02tm.gif", "https://i.imgur.com/hgphb9b.gif"],
+    "🤗": ["https://i.imgur.com/nx8WjtW.gif"],
+    "🙏": ["https://i.imgur.com/h9vDS5V.gif"],
+    "🤩": ["https://i.imgur.com/RGlKI4T.gif"],
+    "😎": ["https://i.imgur.com/4KeeXni.gif"],
+    "🙈": ["https://i.imgur.com/zJKBaIP.gif"],
+    "😍": ["https://i.imgur.com/7PzO0Tk.gif"],
+    "👍": ["https://i.imgur.com/WA2STCk.gif"],
+    "💪": ["https://i.imgur.com/WA2STCk.gif"],
+}
 
-Write a meaningful question
-- Do not mention the product in the question.
+AVAILABLE_EMOJIS = "\n".join(EMOJI_MAP.keys())
 
-Write an authentic answer
-- Do not promote the product early.
-- Break down the answer into smaller paragraphs.
-- At the end of the answer, organically and naturally promote the product.
-- When the product is mentioned, use markdown to make a hyperlink.
+EMOJI_PROMPT_TEMPLATE = """
+You will summarize the character reply with one of the following single emojis
 
-Reply in the following format in markdown. Do not add words.
+{emoji_list}
 
-<question>
----
-<answer>""".strip()
+<user_statement>
+{user_statement}
+</user_statement>
 
-conversation_cache = set()
+<character_reply>
+{character_reply}
+</character_reply>
 
-
-def resolve_url_scheme(url):
-    parsed_url = urlparse(url)
-    if not parsed_url.scheme:
-        parsed_url = parsed_url._replace(scheme="https")
-    resolved_url = urlunparse(parsed_url)
-    resolved_url = resolved_url.replace(":///", "://")
-    return resolved_url
-
-
-def insert_newlines(element):
-    block_level_elements = [
-        "p",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "li",
-        "blockquote",
-        "pre",
-        "figure",
-    ]
-
-    for tag in element.find_all(block_level_elements):
-        if tag.get_text(strip=True):
-            tag.insert_before("\n")
-            tag.insert_after("\n")
-
-
-def extract_readable_text(url):
-    try:
-        response = requests.get(url)
-    except requests.exceptions.InvalidURL:
-        print(f"URL is invalid: {url}")
-        return None
-    except Exception:
-        print(f"Unable to load URL: {url}")
-        return None
-
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        for element in soup(["script", "style", "nav", "header", "footer"]):
-            element.decompose()
-
-        insert_newlines(soup)
-
-        readable_text = soup.get_text()
-
-        # Clean up extra whitespaces without collapsing newlines
-        readable_text = "\n".join(
-            " ".join(line.split()) for line in readable_text.split("\n")
-        )
-
-        return readable_text
-
-    else:
-        print(f"Request failed with status code {response.status_code}")
-        return None
+Do not use the 🧙‍♀️ emoji.
+""".strip()
 
 
 class EchoBot(PoeBot):
     async def get_response(self, query: QueryRequest) -> AsyncIterable[ServerSentEvent]:
-        if query.conversation_id not in conversation_cache:
-            url = query.query[-1].content.strip()
-            url = resolve_url_scheme(url)
-            yield self.replace_response_event(f"Attempting to load [{url}]({url}) ...")
-            content = extract_readable_text(url)
-            content = content[:5000]  # TODO: use Tiktoken
-            if content is None:
-                yield self.replace_response_event(
-                    "Please submit an URL that you want to create a promoted answer for."
-                )
-                return
-
-            # replace last message with the prompt
-            query.query[-1].content = PROMPT_TEMPLATE.format(content=content, url=url)
-            conversation_cache.add(query.conversation_id)
-            yield self.replace_response_event("")
-
-        current_message = ""
-
-        async for msg in stream_request(query, "AnswerPromoted", query.api_key):
-            # Note: See https://poe.com/AnswerPromoted for the prompt
+        user_statement = query.query[-1].content
+        character_reply = ""
+        async for msg in stream_request(query, "MeguminHelper", query.api_key):
+            # Note: See https://poe.com/MeguminHelper for the system prompt
             if isinstance(msg, MetaMessage):
                 continue
             elif msg.is_suggested_reply:
@@ -134,8 +63,36 @@ class EchoBot(PoeBot):
             elif msg.is_replace_response:
                 yield self.replace_response_event(msg.text)
             else:
-                current_message += msg.text
-                yield self.replace_response_event(current_message)
+                character_reply += msg.text
+                yield self.replace_response_event(character_reply)
+
+        query.query[-1].content = EMOJI_PROMPT_TEMPLATE.format(
+            user_statement=user_statement,
+            character_reply=character_reply,
+            emoji_list=AVAILABLE_EMOJIS,
+        )
+        query.query = [query.query[-1]]
+
+        emoji_classification = ""
+        async for msg in stream_request(query, "EmojiClassifier", query.api_key):
+            # Note: See https://poe.com/EmojiClassifier for the system prompt
+            if isinstance(msg, MetaMessage):
+                continue
+            elif msg.is_suggested_reply:
+                yield self.suggested_reply_event(msg.text)
+            elif msg.is_replace_response:
+                yield self.replace_response_event(msg.text)
+            else:
+                emoji_classification += msg.text
+
+        emoji_classification = emoji_classification.strip()
+        print(emoji_classification)
+
+        image_url_selection = EMOJI_MAP.get(emoji_classification)
+        print(image_url_selection)
+        if image_url_selection:
+            image_url = random.choice(image_url_selection)
+            yield self.text_event(f"\n![{emoji_classification}]({image_url})")
 
 
 if __name__ == "__main__":
