@@ -110,8 +110,12 @@ class EchoBot(PoeBot):
         user_statement = query.query[-1].content.strip()
         urls = extract_urls(user_statement)
 
+
         for url in urls:
-            if url.endswith(".pdf"):
+            if "//arxiv.org" in url:
+                url = url.replace("//arxiv.org", "//ar5iv.org")
+                content = extract_readable_text(url)[:3000]  # to fix
+            elif url.endswith(".pdf"):
                 _, content = parse_pdf_document_from_url(url)
             else:
                 content = extract_readable_text(url)[:3000]  # to fix
