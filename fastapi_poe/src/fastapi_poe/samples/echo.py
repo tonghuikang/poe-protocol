@@ -6,6 +6,8 @@ Sample bot that echoes back messages.
 from __future__ import annotations
 
 import random
+import re
+from collections import defaultdict
 from typing import AsyncIterable
 
 from sse_starlette.sse import ServerSentEvent
@@ -16,37 +18,43 @@ from fastapi_poe.types import QueryRequest
 
 # introduction to be added https://i.imgur.com/xbXviUO.gif
 
-EMOJI_MAP = {
-    "🔥": ["https://i.imgur.com/lPHtYl9.gif", "https://i.imgur.com/aJ9Pnas.gif"],
-    "💥": ["https://i.imgur.com/lPHtYl9.gif", "https://i.imgur.com/aJ9Pnas.gif"],
-    "🧙‍♀️": ["https://i.imgur.com/lPHtYl9.gif", "https://i.imgur.com/aJ9Pnas.gif"],
-    "😱": ["https://i.imgur.com/3YY02tm.gif", "https://i.imgur.com/hgphb9b.gif"],
-    "🤗": ["https://i.imgur.com/nx8WjtW.gif"],
-    "🙏": ["https://i.imgur.com/h9vDS5V.gif"],
-    "🤩": ["https://i.imgur.com/RGlKI4T.gif"],
-    "😎": ["https://i.imgur.com/4KeeXni.gif"],
-    "🙈": ["https://i.imgur.com/zJKBaIP.gif"],
-    "😍": ["https://i.imgur.com/7PzO0Tk.gif"],
-    "👍": ["https://i.imgur.com/WA2STCk.gif"],
-    "💪": ["https://i.imgur.com/WA2STCk.gif"],
+EMOJI_INVERSE_MAP = {
+    "https://i.imgur.com/lPHtYl9.gif": ["🔥", "💥", "🧙‍♀️"],
+    "https://i.imgur.com/aJ9Pnas.gif": ["🔥", "💥", "🧙‍♀️"],
+    "https://i.imgur.com/hgphb9b.gif": ["😱"],
+    "https://i.imgur.com/3YY02tm.gif": ["😱"],
+    "https://i.imgur.com/nx8WjtW.gif": ["🤗"],
+    "https://i.imgur.com/h9vDS5V.gif": ["🙏"],
+    "https://i.imgur.com/RGlKI4T.gif": ["🤩"],
+    "https://i.imgur.com/4KeeXni.gif": ["😎", "🤴", "😠"],
+    "https://i.imgur.com/zJKBaIP.gif": ["🙈"],
+    "https://i.imgur.com/7PzO0Tk.gif": ["😍"],
+    "https://i.imgur.com/WA2STCk.gif": ["👍", "💪"],
 }
+
+EMOJI_MAP = defaultdict(list)
+
+for image_url, emojis in EMOJI_INVERSE_MAP.items():
+    for emoji in emojis:
+        EMOJI_MAP[emoji].append(image_url)
 
 AVAILABLE_EMOJIS = "\n".join(EMOJI_MAP.keys())
 
-EMOJI_PROMPT_TEMPLATE = """
-You will summarize the character reply with one of the following single emojis
+ITALICS_PATTERN = r"(?<!\*)\*([^\*]+)\*(?!\*)|(?<!_)_([^_]+)_(?!_)"
 
-{emoji_list}
+EMOJI_PROMPT_TEMPLATE = """
+You will summarize the character reply into one emojis
 
 <user_statement>
 {user_statement}
 </user_statement>
 
-<character_reply>
-{character_reply}
-</character_reply>
+<character_statement>
+{character_statement}
+</character_statement>
 
-Do not use the 🧙‍♀️ emoji.
+This are the available emojis
+😱,🤗,🙏,🤩,😎,😍,👍
 """.strip()
 
 
@@ -66,9 +74,19 @@ class EchoBot(PoeBot):
                 character_reply += msg.text
                 yield self.replace_response_event(character_reply)
 
+        italics_from_character = "\n".join(
+            "".join(element) for element in re.findall(ITALICS_PATTERN, character_reply)
+        )
+
+        character_statement = character_reply
+        if italics_from_character:
+            character_statement = italics_from_character
+            user_statement = ""
+
+        print("character_statement", character_statement)
         query.query[-1].content = EMOJI_PROMPT_TEMPLATE.format(
             user_statement=user_statement,
-            character_reply=character_reply,
+            character_statement=character_statement,
             emoji_list=AVAILABLE_EMOJIS,
         )
         query.query = [query.query[-1]]
@@ -86,10 +104,10 @@ class EchoBot(PoeBot):
                 emoji_classification += msg.text
 
         emoji_classification = emoji_classification.strip()
-        print(emoji_classification)
+        print("emoji_classification", emoji_classification)
 
         image_url_selection = EMOJI_MAP.get(emoji_classification)
-        print(image_url_selection)
+        print("image_url_selection", image_url_selection)
         if image_url_selection:
             image_url = random.choice(image_url_selection)
             yield self.text_event(f"\n![{emoji_classification}]({image_url})")
